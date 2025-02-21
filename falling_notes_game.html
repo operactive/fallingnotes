@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Falling Notes</title>
+  <style>
+    /* ---------------------------
+       1) Global Styles & Colours
+       --------------------------- */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Trebuchet MS", Arial, sans-serif;
+    }
+
+    /* Colour scheme */
+    :root {
+      --color-primary: #E05534; /* Bold accent */
+      --color-bg: #091217;     /* Dark background */
+      --color-text: #FAFAFA;   /* Light text */
+      --color-note-shadow: rgba(224,85,52,0.5);
+    }
+
+    /* Body with animated gradient background top-to-bottom */
+    body {
+      overflow: hidden;
+      height: 100vh;
+      width: 100%;
+      color: var(--color-text);
+      background: linear-gradient(to bottom, var(--color-bg) 0%, var(--color-bg) 60%, var(--color-primary) 100%);
+      background-size: 100% 200%;
+      animation: gradientMove 8s ease infinite;
+    }
+
+    /* The gradient animation: moves top-to-bottom, then back up */
+    @keyframes gradientMove {
+      0% { background-position: 0% 0%; }
+      50% { background-position: 0% 100%; }
+      100% { background-position: 0% 0%; }
+    }
+
+    /* ---------------------------
+       2) Header & Info
+       --------------------------- */
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      text-align: center;
+      padding: 12px 0;
+      z-index: 9999;
+      background: rgba(0,0,0,0.3);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+
+    header h1 {
+      margin: 0;
+      font-weight: normal;
+      font-size: 1.8em;
+      letter-spacing: 1px;
+      color: var(--color-text);
+    }
+
+    .info {
+      margin-top: 4px;
+      font-size: 0.85em;
+      opacity: 0.8;
+    }
+
+    /* ---------------------------
+       3) Game Container & Scoreboard
+       --------------------------- */
+    #game-container {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #scoreboard {
+      position: fixed;
+      top: 12px;
+      right: 16px;
+      font-size: 1.1em;
+      background: rgba(250, 250, 250, 0.15);
+      padding: 8px 12px;
+      border-radius: 6px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.3);
+      z-index: 10000;
+    }
+
+    /* Shake animation for scoreboard when life is lost */
+    .shake {
+      animation: shakeAnim 0.4s ease;
+    }
+
+    @keyframes shakeAnim {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-5px); }
+      40% { transform: translateX(5px); }
+      60% { transform: translateX(-5px); }
+      80% { transform: translateX(5px); }
+    }
+
+    /* ---------------------------
+       4) Falling Note Style & Animations
+       --------------------------- */
+    .note {
+      position: absolute;
+      top: 0;
+      width: 50px;
+      height: 50px;
+      background: var(--color-primary);
+      border-radius: 50%;
+      text-align: center;
+      line-height: 50px;
+      font-size: 20px;
+      color: var(--color-text);
+      font-weight: bold;
+      pointer-events: none; /* No mouse interaction */
+      opacity: 0;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 0 10px var(--color-note-shadow);
+      animation: fadeIn 0.5s ease-out forwards; /* fade in on spawn */
+    }
+
+    /* Fade-in animation for notes */
+    @keyframes fadeIn {
+      0% {
+        transform: translateY(-20px);
+        opacity: 0;
+      }
+      100% {
+        transform: translateY(0px);
+        opacity: 0.9;
+      }
+    }
+
+    .note:hover {
+      transform: scale(1.1);
+      opacity: 1;
+      box-shadow: 0 0 20px var(--color-note-shadow);
+    }
+
+    /* ---------------------------
+       5) Start & Game Over Screens
+       --------------------------- */
+    #start-screen, #game-over-screen {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.6);
+      border: 2px solid var(--color-primary);
+      padding: 30px;
+      text-align: center;
+      z-index: 10001;
+      border-radius: 8px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.7);
+      width: 320px;
+      max-width: 90%;
+    }
+
+    #start-screen h2, #game-over-screen h2 {
+      margin-bottom: 15px;
+      font-weight: normal;
+      color: var(--color-text);
+    }
+
+    #start-screen p {
+      margin-bottom: 20px;
+      font-size: 0.95em;
+      opacity: 0.8;
+    }
+
+    #start-btn, #restart-btn, #share-btn {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 12px 20px;
+      cursor: pointer;
+      font-size: 1em;
+      background: var(--color-primary);
+      color: var(--color-text);
+      border: none;
+      border-radius: 4px;
+      transition: background 0.2s;
+      text-decoration: none; /* for share link */
+    }
+
+    #start-btn:hover, #restart-btn:hover, #share-btn:hover {
+      background: #c44b2e; /* Slightly darker shade of primary */
+    }
+
+    /* Game Over styling */
+    #game-over-screen p {
+      margin: 10px 0;
+      font-size: 1em;
+      color: var(--color-text);
+    }
+
+    #final-score {
+      margin: 10px 0;
+      font-weight: bold;
+      font-size: 1.1em;
+      color: var(--color-text);
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Falling Notes</h1>
+    <div class="info">
+      Type the letters to hear the melody.
+    </div>
+  </header>
+
+  <div id="game-container"></div>
+  
+  <div id="scoreboard"></div>
+
+  <!-- Start Screen -->
+  <div id="start-screen">
+    <h2>Welcome</h2>
+    <p>
+      A short melody will drop as letters.<br />
+      Type the matching letter to remove each note.<br />
+      Each correct press is <strong>+1 point</strong>.
+    </p>
+    <button id="start-btn">Start</button>
+  </div>
+
+  <!-- Game Over Screen -->
+  <div id="game-over-screen" style="display: none;">
+    <h2>Game Over!</h2>
+    <p id="final-score"></p>
+    <div>
+      <button id="restart-btn">Play Again</button>
+      <a id="share-btn" href="#" target="_blank">Share Score</a>
+    </div>
+  </div>
+
+  <script>
+    // ----------------------------------
+    // 1) Short Melody Definition
+    // ----------------------------------
+    // Simple snippet of letters A–G.
+    const songNotes = [
+      'E','E','F','G','G','F','E','D',
+      'C','C','D','E','E','D','D',
+      'E','E','F','G','G','F','E','D',
+      'C','C','D','E','D','C','C'
+    ];
+
+    // Piano frequencies for A–G:
+    const noteFrequencies = {
+      'A': 440.00,
+      'B': 493.88,
+      'C': 261.63,
+      'D': 293.66,
+      'E': 329.63,
+      'F': 349.23,
+      'G': 392.00
+    };
+
+    // ----------------------------------
+    // 2) Game Configuration & Variables
+    // ----------------------------------
+    let spawnInterval = null;
+    let fallInterval = null;
+    let isGameRunning = false;
+    let score = 0;
+    let lives = 3;
+
+    let noteSpeed = 1;         // starting fall speed
+    let speedIncrement = 0.001; // how quickly speed ramps up
+    let songIndex = 0;         // track which note from the melody to spawn
+
+    const gameContainer = document.getElementById('game-container');
+    const scoreboard = document.getElementById('scoreboard');
+    const startScreen = document.getElementById('start-screen');
+    const gameOverScreen = document.getElementById('game-over-screen');
+    const finalScoreText = document.getElementById('final-score');
+    const startBtn = document.getElementById('start-btn');
+    const restartBtn = document.getElementById('restart-btn');
+    const shareBtn = document.getElementById('share-btn');
+
+    // ----------------------------------
+    // 3) Event Listeners
+    // ----------------------------------
+    startBtn.addEventListener('click', startGame);
+    restartBtn.addEventListener('click', startGame);
+    document.addEventListener('keydown', handleKeyPress);
+
+    // ----------------------------------
+    // 4) Core Game Functions
+    // ----------------------------------
+
+    function startGame() {
+      // Reset everything
+      isGameRunning = true;
+      score = 0;
+      lives = 3;
+      noteSpeed = 1;
+      songIndex = 0;
+      updateScoreboard();
+
+      startScreen.style.display = 'none';
+      gameOverScreen.style.display = 'none';
+
+      clearNotes();
+
+      // Intervals to spawn notes and move them
+      spawnInterval = setInterval(spawnNote, 1500); // every 1.5s
+      fallInterval = setInterval(moveNotes, 16);    // ~60 FPS
+    }
+
+    function gameOver() {
+      isGameRunning = false;
+      clearInterval(spawnInterval);
+      clearInterval(fallInterval);
+
+      finalScoreText.textContent = `Your final score: ${score}`;
+      gameOverScreen.style.display = 'block';
+
+      // Update share link with user’s score
+      const tweetText = encodeURIComponent(`I just scored ${score} points in Falling Notes! Can you beat me?`);
+      const twitterURL = `https://twitter.com/intent/tweet?text=${tweetText}`;
+      shareBtn.href = twitterURL;
+    }
+
+    // Spawn the next note in the sequence
+    function spawnNote() {
+      if (songIndex >= songNotes.length) {
+        // If we reach the end of the snippet, loop back
+        songIndex = 0;
+      }
+      const noteLetter = songNotes[songIndex];
+      songIndex++;
+
+      const noteElem = document.createElement('div');
+      noteElem.classList.add('note');
+      noteElem.textContent = noteLetter;
+      noteElem.dataset.letter = noteLetter;
+
+      // Random horizontal position
+      const containerWidth = gameContainer.offsetWidth;
+      const noteSize = 50;
+      const maxLeft = containerWidth - noteSize;
+      const randomLeft = Math.floor(Math.random() * maxLeft);
+      noteElem.style.left = randomLeft + 'px';
+      noteElem.style.top = '0px';
+
+      gameContainer.appendChild(noteElem);
+    }
+
+    // Move all notes downward
+    function moveNotes() {
+      const notes = document.getElementsByClassName('note');
+
+      for (let i = 0; i < notes.length; i++) {
+        const note = notes[i];
+        const currentTop = parseInt(note.style.top);
+        const newTop = currentTop + noteSpeed;
+        note.style.top = newTop + 'px';
+
+        // If note goes off the screen
+        if (newTop > window.innerHeight) {
+          note.remove();
+          loseLife();
+        }
+      }
+      // Increase speed gradually
+      noteSpeed += speedIncrement;
+    }
+
+    // Handle typed letters
+    function handleKeyPress(event) {
+      if (!isGameRunning) return;
+      const pressedKey = event.key.toUpperCase();
+
+      // Only respond if it's a recognized letter (A–G)
+      if (!noteFrequencies[pressedKey]) return;
+
+      // Check if a note on screen matches this letter
+      const notes = document.getElementsByClassName('note');
+      let foundMatch = false;
+
+      for (let i = 0; i < notes.length; i++) {
+        const note = notes[i];
+        if (note.dataset.letter === pressedKey) {
+          score++;
+          updateScoreboard();
+          playNoteSound(pressedKey);
+          note.remove();
+          foundMatch = true;
+          break;
+        }
+      }
+
+      // If we typed a valid letter but didn't find a matching note => lose a life
+      if (!foundMatch) {
+        loseLife();
+      }
+    }
+
+    function loseLife() {
+      lives--;
+      updateScoreboard();
+      indicateLifeLost();  // new effect for losing a life
+      if (lives <= 0) {
+        gameOver();
+      }
+    }
+
+    function updateScoreboard() {
+      scoreboard.textContent = `Score: ${score} | Lives: ${lives}`;
+    }
+
+    // Remove leftover notes
+    function clearNotes() {
+      const notes = document.getElementsByClassName('note');
+      Array.from(notes).forEach(note => note.remove());
+    }
+
+    // ----------------------------------
+    // 5) Audio: Short Tone for Each Correct Note
+    // ----------------------------------
+    function playNoteSound(letter) {
+      if (!window.AudioContext) return;
+      const freq = noteFrequencies[letter];
+      const context = new AudioContext();
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+
+      oscillator.type = 'sine';
+      oscillator.frequency.value = freq;
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+
+      gainNode.gain.value = 0.25;
+
+      oscillator.start();
+      oscillator.stop(context.currentTime + 0.2); // short 0.2s tone
+      oscillator.onended = () => context.close();
+    }
+
+    // ----------------------------------
+    // 6) Special Effect for Lost Life
+    // ----------------------------------
+    function indicateLifeLost() {
+      // Quick scoreboard "shake" animation
+      scoreboard.classList.add('shake');
+      setTimeout(() => {
+        scoreboard.classList.remove('shake');
+      }, 400);
+
+      // Short "buzz" sound
+      playLifeLostSound();
+    }
+
+    function playLifeLostSound() {
+      if (!window.AudioContext) return;
+      const context = new AudioContext();
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+
+      oscillator.type = 'square';     // produce a buzz-like tone
+      oscillator.frequency.value = 220; // lower pitch for "error" effect
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+
+      gainNode.gain.value = 0.3;
+
+      oscillator.start();
+      oscillator.stop(context.currentTime + 0.2);
+      oscillator.onended = () => context.close();
+    }
+  </script>
+</body>
+</html>
